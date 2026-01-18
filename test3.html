@@ -86,7 +86,7 @@
         <div class="relative w-64 h-64 flex items-center justify-center">
             <div class="absolute inset-0 rounded-full border-4 border-white/30 incoming-call-anim"></div>
             <div class="w-56 h-56 rounded-full overflow-hidden border-2 border-white/50 bg-slate-800/50 shadow-2xl">
-                <img src="雙魚.png" alt="雙魚座男" class="w-full h-full object-cover object-top">
+                <img src="雙魚.PNG" alt="雙魚座男" class="w-full h-full object-cover object-top">
             </div>
         </div>
 
@@ -122,7 +122,7 @@
 
         <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-40">
              <div class="h-screen w-auto flex items-center justify-center">
-                <img src="雙魚.png" alt="雙魚座男立繪" class="max-h-[85vh] w-auto object-contain">
+                <img src="雙魚.PNG" alt="雙魚座男立繪" class="max-h-[85vh] w-auto object-contain">
              </div>
         </div>
 
@@ -178,7 +178,7 @@
     <div id="fortune-screen" class="hidden-state flex flex-col items-center justify-center w-full h-full max-w-md mx-auto px-4">
         <div class="card-anim blur-bg rounded-[2.5rem] p-10 border border-white/40 shadow-2xl w-full text-center relative">
             <div class="absolute -top-12 left-1/2 -translate-x-1/2 w-24 h-24 rounded-full border-4 border-white/50 overflow-hidden shadow-xl bg-slate-900">
-                <img src="雙魚.png" alt="雙魚座男" class="w-full h-full object-cover object-top">
+                <img src="雙魚.PNG" alt="雙魚座男" class="w-full h-full object-cover object-top">
             </div>
             
             <h3 class="text-2xl font-bold mt-10 mb-2">本日星靈占卜</h3>
@@ -217,14 +217,20 @@
     <script>
         let timerInterval;
         let seconds = 0;
-        const voice = new Audio('pisces.mp3'); 
+        let currentVoice = null; // 追蹤目前播放中的分段語音
 
-        const lines = [
-            "喂？聽得到嗎？",
-            "剛才在海邊散步，突然就很想聽聽你的聲音...",
-            "總覺得有些話，當面說會害羞到躲起來，所以想說打電話給你。",
-            "遇見你之後，我才發現，原來那些浪漫的幻想，都不及你的一記微笑。",
-            "你就是我最好的現實。陪我一起虛度光陰，好嗎？"
+        // --- 背景音樂初始化 ---
+        const bgm = new Audio('bgm.mp3');
+        bgm.loop = true;
+        bgm.volume = 0.25;
+
+        // --- 分段台詞與對應語音路徑 ---
+        const dialogueData = [
+            { text: "喂？聽得到嗎？", vo: "pisces_1.mp3" },
+            { text: "剛才在海邊散步，突然就很想聽聽你的聲音...", vo: "pisces_2.mp3" },
+            { text: "總覺得有些話，當面說會害羞到躲起來，所以想說打電話給你。", vo: "pisces_3.mp3" },
+            { text: "遇見你之後，我才發現，原來那些浪漫的幻想，都不及你的一記微笑。", vo: "pisces_4.mp3" },
+            { text: "你就是我最好的現實。陪我一起虛度光陰，好嗎？", vo: "pisces_5.mp3" }
         ];
 
         const blessing = "「這個月，記得給你自己一點做夢的空間。不需要事事都追求效率，你現在努力的樣子就已經閃閃發光了。我會一直在你身邊，當你最溫柔的港口。」";
@@ -256,9 +262,11 @@
         function acceptCall() {
             document.getElementById('calling-screen').classList.add('hidden-state');
             document.getElementById('incall-screen').classList.remove('hidden-state');
-            voice.play().catch(e => console.log("語音播放失敗:", e));
+            
+            bgm.play().catch(e => console.log("BGM 播放失敗:", e));
+            
             startTimer();
-            playDialogue();
+            playDialogueSequentially();
         }
 
         function startTimer() {
@@ -272,14 +280,35 @@
             }, 1000);
         }
 
-        async function playDialogue() {
+        // --- 核心改動：一個一個播，播完才跳下一句 ---
+        async function playDialogueSequentially() {
             const box = document.getElementById('dialogue-box');
-            box.innerHTML = "";
-            for (let line of lines) {
+            
+            for (let i = 0; i < dialogueData.length; i++) {
+                // 如果已經掛斷了，就停止循環
                 if (document.getElementById('incall-screen').classList.contains('hidden-state')) break;
-                box.innerHTML = `<span class="opacity-90">「${line}」</span>`;
-                await new Promise(r => setTimeout(r, 3500)); 
+
+                const item = dialogueData[i];
+                box.innerHTML = `<span class="opacity-90">「${item.text}」</span>`;
+                
+                // 播放對應段落的語音
+                currentVoice = new Audio(item.vo);
+                
+                // 建立一個 Promise 等待語音播放結束
+                await new Promise((resolve) => {
+                    currentVoice.onended = resolve; // 語音結束後 resolve
+                    currentVoice.onerror = resolve; // 出錯也 resolve 以免程式卡死
+                    currentVoice.play().catch(e => {
+                        console.log(`播放 ${item.vo} 失敗:`, e);
+                        setTimeout(resolve, 2000); // 失敗的話 2 秒後跳下一句
+                    });
+                });
+
+                // 語音播完後，稍微停個 0.5 秒再跳下一句
+                await new Promise(r => setTimeout(r, 500));
             }
+
+            // 全部播完後顯示祝福按鈕
             if (!document.getElementById('incall-screen').classList.contains('hidden-state')) {
                 document.getElementById('blessing-btn').classList.remove('hidden-state');
             }
@@ -293,8 +322,13 @@
 
         function endCall() {
             clearInterval(timerInterval);
-            voice.pause();
-            voice.currentTime = 0;
+            
+            // 停止目前正在播放的分段語音
+            if (currentVoice) {
+                currentVoice.pause();
+                currentVoice.currentTime = 0;
+            }
+
             document.getElementById('incall-screen').classList.add('hidden-state');
             document.getElementById('selection-screen').classList.remove('hidden-state');
         }
