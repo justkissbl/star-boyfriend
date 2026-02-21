@@ -65,16 +65,27 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        .option-btn {
-            transition: all 0.3s ease;
-        }
-        .option-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: scale(1.05);
+        .fade-out {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1s ease;
         }
     </style>
 </head>
-<body class="flex flex-col items-center justify-between py-10 px-6 h-screen" onclick="initAudio()">
+<body class="flex flex-col items-center justify-between py-10 px-6 h-screen">
+
+    <!-- 0. 啟動封面：是誰打給你呢？ -->
+    <div id="start-overlay" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-slate-900/95 backdrop-blur-2xl">
+        <div class="w-32 h-32 mb-8 rounded-full border-2 border-white/10 p-1 bg-white/5 flex items-center justify-center">
+            <!-- 讓頭像帶點神祕的透明度 -->
+            <img src="雙魚.png" alt="啟動頭像" class="w-full h-full object-cover rounded-full opacity-40 grayscale blur-[2px]">
+        </div>
+        <h2 class="text-3xl font-bold mb-10 tracking-[0.3em] text-white">是誰打給你呢？</h2>
+        <button onclick="realInit()" class="px-12 py-4 bg-white/10 hover:bg-white/20 border border-white/30 rounded-full text-lg font-light tracking-widest shadow-2xl transition-all hover:scale-105 active:scale-95 backdrop-blur-md">
+            點擊進入
+        </button>
+        <p class="mt-6 text-xs opacity-40 tracking-tighter">開啟聲音以聆聽星際私語</p>
+    </div>
 
     <!-- 1. 來電畫面 -->
     <div id="calling-screen" class="flex flex-col items-center justify-around w-full h-full max-w-md mx-auto">
@@ -100,4 +111,254 @@
             
             <div onclick="acceptCall()" class="flex flex-col items-center cursor-pointer group">
                 <div class="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mb-3 group-hover:bg-green-600 transition-all shadow-lg hover:scale-110">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="rotate-[135deg]"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l2.28-2.28a2 2 0 0 1 2.11-.45 12.84
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="rotate-[135deg]"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l2.28-2.28a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                </div>
+                <span class="text-lg font-medium">接聽</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. 通話中介面 -->
+    <div id="incall-screen" class="hidden-state flex flex-col items-center w-full h-full justify-between py-10">
+        <div class="text-center z-10">
+            <h2 class="text-3xl font-bold mb-2">雙魚座男友</h2>
+            <div class="flex items-center justify-center">
+                <div class="wave" style="animation-delay: 0.1s"></div>
+                <div class="wave" style="animation-delay: 0.3s"></div>
+                <div class="wave" style="animation-delay: 0.2s"></div>
+                <div class="wave" style="animation-delay: 0.4s"></div>
+                <span class="ml-3 font-mono text-xl" id="timer">00:00</span>
+            </div>
+        </div>
+
+        <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-40">
+             <div class="h-screen w-auto flex items-center justify-center">
+                <img src="雙魚.png" alt="雙魚座男立繪" class="max-h-[85vh] w-auto object-contain">
+             </div>
+        </div>
+
+        <div class="w-full max-w-lg px-6 mb-8 z-20">
+            <div class="blur-bg rounded-3xl p-8 min-h-[160px] flex flex-col justify-center border border-white/30 shadow-2xl text-center">
+                <p id="dialogue-box" class="text-2xl leading-relaxed tracking-wider font-light"></p>
+                <div id="blessing-btn" class="hidden-state mt-6 flex justify-center">
+                    <button onclick="showBlessing()" class="bg-white/20 hover:bg-white/30 px-8 py-3 rounded-full text-base border border-white/40 transition-all backdrop-blur-md">
+                        查看他留給你的話
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div onclick="endCall()" class="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-red-700 transition-all shadow-2xl z-20 mb-4 hover:scale-105">
+             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l2.28-2.28a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+        </div>
+    </div>
+
+    <!-- 3. 占卜選擇介面 -->
+    <div id="selection-screen" class="hidden-state flex flex-col items-center justify-center w-full h-full max-w-md mx-auto px-6">
+        <h2 class="text-3xl font-bold mb-4 text-center">聽完他的心意後...</h2>
+        <p class="text-lg opacity-80 mb-10 text-center">憑直覺點選一個專屬於你的幸運導引：</p>
+        
+        <div class="grid grid-cols-1 gap-6 w-full">
+            <div onclick="selectFortune('tail')" class="option-btn blur-bg border border-white/30 rounded-2xl p-6 flex items-center cursor-pointer">
+                <div class="w-16 h-16 bg-blue-400/30 rounded-full flex items-center justify-center text-3xl mr-6">🧜‍♂️</div>
+                <div>
+                    <h4 class="text-xl font-bold">魚尾</h4>
+                    <p class="text-sm opacity-60">順著直覺的情緒流動</p>
+                </div>
+            </div>
+
+            <div onclick="selectFortune('ocean')" class="option-btn blur-bg border border-white/30 rounded-2xl p-6 flex items-center cursor-pointer">
+                <div class="w-16 h-16 bg-cyan-400/30 rounded-full flex items-center justify-center text-3xl mr-6">🌊</div>
+                <div>
+                    <h4 class="text-xl font-bold">海洋</h4>
+                    <p class="text-sm opacity-60">包容一切的平靜力量</p>
+                </div>
+            </div>
+
+            <div onclick="selectFortune('star')" class="option-btn blur-bg border border-white/30 rounded-2xl p-6 flex items-center cursor-pointer">
+                <div class="w-16 h-16 bg-yellow-400/30 rounded-full flex items-center justify-center text-3xl mr-6">✨</div>
+                <div>
+                    <h4 class="text-xl font-bold">星星</h4>
+                    <p class="text-sm opacity-60">指引夢想的微光</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. 占卜結果介面 -->
+    <div id="fortune-screen" class="hidden-state flex flex-col items-center justify-center w-full h-full max-w-md mx-auto px-4">
+        <div class="card-anim blur-bg rounded-[2.5rem] p-10 border border-white/40 shadow-2xl w-full text-center relative">
+            <div class="absolute -top-12 left-1/2 -translate-x-1/2 w-24 h-24 rounded-full border-4 border-white/50 overflow-hidden shadow-xl bg-slate-900">
+                <img src="雙魚.png" alt="雙魚座男" class="w-full h-full object-cover object-top">
+            </div>
+            
+            <h3 class="text-2xl font-bold mt-10 mb-2">本日星靈占卜</h3>
+            <p id="fortune-type" class="text-blue-200 text-sm mb-8 tracking-widest uppercase"></p>
+            
+            <div class="space-y-8 text-left">
+                <div>
+                    <p class="text-xs opacity-50 mb-2 tracking-tighter">運勢能量</p>
+                    <div id="fortune-stars" class="flex text-yellow-400 text-xl tracking-widest"></div>
+                </div>
+                
+                <div>
+                    <p class="text-xs opacity-50 mb-2 tracking-tighter">給你的指引</p>
+                    <p id="fortune-text" class="text-xl font-light leading-relaxed"></p>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-6 pt-6 border-t border-white/10">
+                    <div>
+                        <p class="text-xs opacity-50 mb-1">幸運色</p>
+                        <p id="fortune-color" class="font-bold text-lg"></p>
+                    </div>
+                    <div>
+                        <p class="text-xs opacity-50 mb-1">幸運小物</p>
+                        <p id="fortune-item" class="font-bold text-lg"></p>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="restartApp()" class="mt-12 w-full py-4 bg-white/10 hover:bg-white/20 rounded-2xl border border-white/30 transition-all text-lg font-medium">
+                再次通話
+            </button>
+        </div>
+        <p class="mt-10 text-xs opacity-30 tracking-widest uppercase">© Star Whispers Project</p>
+    </div>
+
+    <script>
+        let timerInterval;
+        let seconds = 0;
+        let currentVoice = null;
+        let isAudioInitialized = false;
+        let isCallAccepted = false;
+
+        const ringtone = new Audio('ringtone.mp3'); 
+        ringtone.loop = true;
+
+        const bgm = new Audio('bgm.mp3'); 
+        bgm.loop = true;
+        bgm.volume = 0.2;
+
+        const dialogueData = [
+            { text: "喂？聽得到嗎？", vo: "pisces_1.mp3" },
+            { text: "剛才在海邊散步，突然就很想聽聽你的聲音...", vo: "pisces_2.mp3" },
+            { text: "總覺得有些話，當面說會害羞到躲起來，所以想說打電話給你。", vo: "pisces_3.mp3" },
+            { text: "遇見你之後，我才發現，原來那些浪漫的幻想，都不及你的一記微笑。", vo: "pisces_4.mp3" },
+            { text: "你就是我最好的現實。陪我一起虛度光陰，好嗎？", vo: "pisces_5.mp3" }
+        ];
+
+        function realInit() {
+            if (!isAudioInitialized) {
+                const overlay = document.getElementById('start-overlay');
+                overlay.classList.add('fade-out');
+                setTimeout(() => overlay.style.display = 'none', 1000);
+
+                ringtone.play().catch(e => console.log("響鈴播放失敗:", e));
+                isAudioInitialized = true;
+            }
+        }
+
+        function acceptCall() {
+            isCallAccepted = true; 
+            ringtone.pause();
+            ringtone.currentTime = 0;
+            
+            document.getElementById('calling-screen').classList.add('hidden-state');
+            document.getElementById('incall-screen').classList.remove('hidden-state');
+            
+            bgm.play().catch(e => console.log("BGM 播放失敗:", e));
+            
+            startTimer();
+            playDialogueSequentially();
+        }
+
+        function startTimer() {
+            seconds = 0;
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                seconds++;
+                let min = Math.floor(seconds / 60).toString().padStart(2, '0');
+                let sec = (seconds % 60).toString().padStart(2, '0');
+                document.getElementById('timer').innerText = `${min}:${sec}`;
+            }, 1000);
+        }
+
+        async function playDialogueSequentially() {
+            const box = document.getElementById('dialogue-box');
+            
+            for (let i = 0; i < dialogueData.length; i++) {
+                if (document.getElementById('incall-screen').classList.contains('hidden-state')) break;
+
+                const item = dialogueData[i];
+                box.innerHTML = `<span class="opacity-90">「${item.text}」</span>`;
+                
+                currentVoice = new Audio(item.vo);
+                
+                await new Promise((resolve) => {
+                    currentVoice.onended = resolve;
+                    currentVoice.onerror = resolve;
+                    currentVoice.play().catch(e => {
+                        console.log(`播放 ${item.vo} 失敗:`, e);
+                        setTimeout(resolve, 2000);
+                    });
+                });
+
+                await new Promise(r => setTimeout(r, 1200));
+            }
+
+            if (!document.getElementById('incall-screen').classList.contains('hidden-state')) {
+                document.getElementById('blessing-btn').classList.remove('hidden-state');
+            }
+        }
+
+        function showBlessing() {
+            const box = document.getElementById('dialogue-box');
+            box.innerHTML = `<span class="text-blue-100 font-normal leading-loose">「這個月，記得給你自己一點做夢的空間。不需要事事都追求效率，你現在努力的樣子就已經閃閃發光了。我會一直在你身邊，當你最溫柔的港口。」</span>`;
+            document.getElementById('blessing-btn').classList.add('hidden-state');
+        }
+
+        function endCall() {
+            clearInterval(timerInterval);
+            ringtone.pause();
+            if (currentVoice) {
+                currentVoice.pause();
+                currentVoice.currentTime = 0;
+            }
+            bgm.pause();
+            bgm.currentTime = 0;
+
+            document.getElementById('incall-screen').classList.add('hidden-state');
+            document.getElementById('selection-screen').classList.remove('hidden-state');
+        }
+
+        const fortuneData = {
+            tail: { type: 'Fish Tail - 情緒流動', stars: '★★★★☆', text: '今天的你適合順著感覺走。不要壓抑心中的小小渴望，當你勇敢游向大海，你會發現驚喜就在前方。', color: '珊瑚粉', item: '手作飾品' },
+            ocean: { type: 'Ocean - 平靜力量', stars: '★★★★★', text: '像大海一樣包容所有情緒。當你學會平靜地看待那些煩惱，陽光自然就會透進深海，照亮你的心。', color: '深海藍', item: '香氛蠟燭' },
+            star: { type: 'Star - 夢想指引', stars: '★★★★☆', text: '不要害怕做夢，你的夢想正像北極星一樣指引著你。只要堅持你所相信的，整片星空都會為你閃耀。', color: '星光銀', item: '記事本' }
+        };
+
+        function selectFortune(choice) {
+            const data = fortuneData[choice];
+            document.getElementById('fortune-type').innerText = data.type;
+            document.getElementById('fortune-stars').innerText = data.stars;
+            document.getElementById('fortune-text').innerText = data.text;
+            document.getElementById('fortune-color').innerText = data.color;
+            document.getElementById('fortune-item').innerText = data.item;
+
+            document.getElementById('selection-screen').classList.add('hidden-state');
+            document.getElementById('fortune-screen').classList.remove('hidden-state');
+        }
+
+        function restartApp() {
+            location.reload();
+        }
+
+        function rejectCall() {
+            ringtone.pause();
+            const status = document.querySelector('#calling-screen p');
+            status.innerText = "通話已拒絕";
+            setTimeout(() => { location.reload(); }, 1500);
+        }
+    </script>
+</body>
+</html>
