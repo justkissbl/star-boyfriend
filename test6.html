@@ -65,16 +65,27 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        .option-btn {
-            transition: all 0.3s ease;
-        }
-        .option-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: scale(1.05);
+        .fade-out {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1s ease;
         }
     </style>
 </head>
-<body class="flex flex-col items-center justify-between py-10 px-6 h-screen" onclick="initAudio()">
+<body class="flex flex-col items-center justify-between py-10 px-6 h-screen">
+
+    <!-- 0. 啟動封面：是誰打給你呢？ -->
+    <div id="start-overlay" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-slate-900/95 backdrop-blur-2xl">
+        <div class="w-32 h-32 mb-8 rounded-full border-2 border-white/10 p-1 bg-white/5 flex items-center justify-center">
+            <!-- 讓頭像帶點神祕的透明度 -->
+            <img src="雙魚.png" alt="啟動頭像" class="w-full h-full object-cover rounded-full opacity-40 grayscale blur-[2px]">
+        </div>
+        <h2 class="text-3xl font-bold mb-10 tracking-[0.3em] text-white">是誰打給你呢？</h2>
+        <button onclick="realInit()" class="px-12 py-4 bg-white/10 hover:bg-white/20 border border-white/30 rounded-full text-lg font-light tracking-widest shadow-2xl transition-all hover:scale-105 active:scale-95 backdrop-blur-md">
+            點擊進入
+        </button>
+        <p class="mt-6 text-xs opacity-40 tracking-tighter">開啟聲音以聆聽星際私語</p>
+    </div>
 
     <!-- 1. 來電畫面 -->
     <div id="calling-screen" class="flex flex-col items-center justify-around w-full h-full max-w-md mx-auto">
@@ -86,7 +97,6 @@
         <div class="relative w-64 h-64 flex items-center justify-center">
             <div class="absolute inset-0 rounded-full border-4 border-white/30 incoming-call-anim"></div>
             <div class="w-56 h-56 rounded-full overflow-hidden border-2 border-white/50 bg-slate-800/50 shadow-2xl">
-                <!-- 確保圖檔名為 雙魚.png -->
                 <img src="雙魚.png" alt="雙魚座男" class="w-full h-full object-cover object-top">
             </div>
         </div>
@@ -220,12 +230,12 @@
         let seconds = 0;
         let currentVoice = null;
         let isAudioInitialized = false;
+        let isCallAccepted = false;
 
-        // --- 音效初始化 ---
-        const ringtone = new Audio('ringtone.mp3');
+        const ringtone = new Audio('ringtone.mp3'); 
         ringtone.loop = true;
 
-        const bgm = new Audio('bgm.mp3');
+        const bgm = new Audio('bgm.mp3'); 
         bgm.loop = true;
         bgm.volume = 0.2;
 
@@ -237,16 +247,19 @@
             { text: "你就是我最好的現實。陪我一起虛度光陰，好嗎？", vo: "pisces_5.mp3" }
         ];
 
-        function initAudio() {
+        function realInit() {
             if (!isAudioInitialized) {
-                ringtone.play().catch(() => {});
-                ringtone.pause();
+                const overlay = document.getElementById('start-overlay');
+                overlay.classList.add('fade-out');
+                setTimeout(() => overlay.style.display = 'none', 1000);
+
+                ringtone.play().catch(e => console.log("響鈴播放失敗:", e));
                 isAudioInitialized = true;
-                ringtone.play();
             }
         }
 
         function acceptCall() {
+            isCallAccepted = true; 
             ringtone.pause();
             ringtone.currentTime = 0;
             
@@ -337,7 +350,6 @@
         }
 
         function restartApp() {
-            // 這裡是重點！不論檔名叫什麼，reload 都會重置當前頁面
             location.reload();
         }
 
